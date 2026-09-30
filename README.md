@@ -4,6 +4,8 @@ An offline Windows x64 workbench for turning collected photographs and recording
 
 ## Run the app
 
+This GitHub repository contains source, not the local QA installers listed below. For a fresh clone, follow [Build from this source checkout](#build-from-this-source-checkout). The app uses Electron, TypeScript, sharp and a separately bootstrapped FFmpeg runtime.
+
 - Local QA installer: `release/Field-Kit-1.5.2-UNSIGNED-QA-Setup-x64.exe`.
 - Local QA portable build: extract **all** of `release/Field-Kit-1.5.2-UNSIGNED-QA-Portable-x64.zip`, then double-click `Field Kit.exe`. Keep its DLLs and resources beside it; do not run only the EXE from inside the ZIP.
 - Optional Godot demo: extract `release/Field-Kit-1.4.0-Godot-Demo.zip`, open `project.godot` in Godot 4.7.2 and press F5. It contains explicitly synthetic sample exports and a small playable scene. Godot is separate from Field Kit and is not required for exporting.
@@ -119,7 +121,7 @@ pnpm package
 
 `pnpm package` is the public-release path and requires `CSC_LINK`, `WIN_CSC_LINK`, or `CSC_NAME`; it also verifies the resulting installer signature. `pnpm package:local` creates explicitly unsigned artifacts whose filenames contain `UNSIGNED-QA`.
 
-The FFmpeg fetch script pins and verifies an archive checksum; upstream's mutable `latest` URL may change. Preserve `.downloads/ffmpeg.zip` and `vendor/ffmpeg` for reproducing this build. An updated archive must be reviewed and pinned deliberately. See `docs/FFMPEG.md` for the build configuration and redistribution requirements.
+The FFmpeg fetch script uses the dated `autobuild-2026-09-26-13-03` LGPL shared release and verifies its pinned SHA-256. Downloads use a dated filename; prior local archives and vendor directories are preserved. Changing the pinned build requires a new provenance/checksum review. See `docs/FFMPEG.md` for the build configuration and redistribution requirements.
 
 `pnpm build` bundles the main/preload/worker programs with esbuild and the UI with Vite. The Three.js scene loads only on demand. `pnpm package` creates a signed NSIS installer and portable ZIP when a signing identity is configured. Electron uses its built-in SQLite; sharp's Windows native files are unpacked from ASAR and FFmpeg's runtime executables and DLLs are separate resources.
 
@@ -145,7 +147,7 @@ pnpm test:game-exports-ui
 - `docs/FFMPEG.md` and `THIRD_PARTY_NOTICES.txt`: bundled software and redistribution obligations.
 - `CHECKLIST.md`: completed workflow milestones.
 
-The application's own licensing is undecided. `private: true` and the npm `UNLICENSED` marker prevent accidental package publication; they are not a chosen application license. Public distribution, a trusted code-signing certificate, source-compliance preparation and store work remain outside this local implementation.
+The application's own licensing is undecided. `private: true` and the npm `UNLICENSED` marker prevent accidental package publication; they are not a chosen application license. The application source is publicly viewable. Binary redistribution, a trusted code-signing certificate, corresponding-source compliance preparation and store work remain separate release gates.
 
 ## Build from this source checkout
 

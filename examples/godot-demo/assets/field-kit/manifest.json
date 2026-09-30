@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "generator": "Field Kit 1.4.0",
+  "assets": [
+    {
+      "name": "Rain",
+      "tags": [],
+      "type": "sound",
+      "path": "sounds/game_rain.wav",
+      "duration": 1.2,
+      "sampleRate": 48000,
+      "channels": 1,
+      "codec": "pcm_s16le",
+      "bitDepth": 16
+    },
+    {
+      "name": "Bark",
+      "tags": [],
+      "type": "texture",
+      "path": "textures/game_bark.png",
+      "width": 1024,
+      "height": 1024,
+      "format": "png",
+      "colorSpace": "sRGB"
+    },
+    {
+      "name": "Recorded stone",
+      "tags": [],
+      "type": "texture",
+      "path": "textures/game_recorded_stone.png",
+      "width": 1024,
+      "height": 1024,
+      "format": "png",
+      "colorSpace": "sRGB"
+    }
+  ],
+  "author": "Sample creator",
+  "attribution": "User supplied credit"
+}

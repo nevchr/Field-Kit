@@ -1,0 +1,30 @@
+; Open this file in Godot, then press F6/F5 to run the sample scene.
+config_version=5
+
+[application]
+config/name="Field Kit · Material Walk"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[importer_defaults]
+wav={
+"compress/mode": 0,
+"edit/normalize": false,
+"edit/trim": false,
+"force/8_bit": false,
+"force/max_rate": false,
+"force/mono": false
+}
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.86, 0.89, 0.83, 1)

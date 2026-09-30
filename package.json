@@ -1,0 +1,108 @@
+{
+  "name": "field-kit",
+  "productName": "Field Kit",
+  "version": "1.5.2",
+  "description": "An offline workbench for collected textures and sounds.",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "electron .",
+    "dev": "pnpm build && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/core.test.ts tests/reliability.test.ts tests/features.test.ts tests/trash.test.ts tests/batch-export.test.ts tests/game-exports.test.ts",
+    "test:ui": "node --import tsx scripts/smoke.mjs",
+    "test:model-preview-ui": "node scripts/model-preview-ui.mjs --browser",
+    "test:model-preview-electron-ui": "node scripts/model-preview-ui.mjs",
+    "test:reliability-ui": "node --import tsx scripts/reliability-ui.mjs",
+    "test:continuity-ui": "node --import tsx scripts/continuity-ui.mjs",
+    "test:features-ui": "node --import tsx scripts/features-ui.mjs",
+    "test:trash-ui": "node --import tsx scripts/trash-ui.mjs",
+    "test:batch-export-ui": "node --import tsx scripts/batch-export-ui.mjs",
+    "test:game-exports-ui": "node --import tsx scripts/game-exports-ui.mjs",
+    "test:godot": "node --import tsx scripts/godot-smoke.mjs",
+    "test:worker": "node --import tsx scripts/worker-cancellation.mjs && node --import tsx scripts/continuity-worker.mjs",
+    "package": "node scripts/package-release.mjs",
+    "package:local": "node scripts/package-release.mjs --unsigned",
+    "notices": "node scripts/notices.mjs"
+  },
+  "dependencies": {
+    "sharp": "0.35.4",
+    "yazl": "3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.183.0",
+    "@types/yazl": "^3.3.0",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "lucide-react": "1.48.0",
+    "playwright-core": "1.63.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "0.186.1",
+    "tsx": "^4.20.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "zod": "4.6.5"
+  },
+  "build": {
+    "appId": "local.fieldkit.desktop",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "extraFiles": [
+      { "from": "README.md", "to": "README.md" },
+      { "from": "docs/FFMPEG.md", "to": "FFMPEG.md" }
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/ffmpeg",
+        "to": "ffmpeg",
+        "filter": [
+          "bin/**/*",
+          "!bin/ffplay.exe",
+          "BUILD-ORIGIN.json",
+          "LICENSE.txt",
+          "COPYING.GPLv3"
+        ]
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.txt",
+        "to": "THIRD_PARTY_NOTICES.txt"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "Field-Kit-${version}-Setup-x64.exe"
+    },
+    "artifactName": "Field-Kit-${version}-Portable-x64.${ext}"
+  },
+  "packageManager": "pnpm@11.19.0"
+}

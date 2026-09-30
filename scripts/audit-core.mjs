@@ -1,0 +1,87 @@
+// Fault-injection probes for the September 2026 audit. Only disposable fixtures are changed.
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import sharp from 'sharp';
+import { Library, safeName, hashFile } from '../electron/library.ts';
+import { Job, Media } from '../electron/media.ts';
+import { defaultImage, defaultAudio } from '../src/shared.ts';
+import { texture } from '../tests/fixtures.ts';
+
+const root = path.resolve('.test-output', `audit-core-${Date.now()}`);
+await fs.mkdir(root, { recursive: true });
+const bin = path.resolve('vendor/ffmpeg/bin');
+const results = { root, started: new Date().toISOString(), probes: {} };
+const error = async fn => { try { await fn(); return null; } catch (e) { return e.message; } };
+const source = path.join(root, 'source.png');
+await texture(source, 90210, 640, 480);
+
+// Opening a damaged database must not poison the already-open library.
+{
+  const lib = new Library(bin), good = path.join(root, 'good-library'), bad = path.join(root, 'damaged-library');
+  await lib.open(good, true);
+  await lib.import([source], undefined, new Job(), () => {});
+  const before = lib.state().assets.length;
+  await fs.mkdir(bad);
+  await fs.writeFile(path.join(bad, 'field-kit.json'), JSON.stringify({ format: 'field-kit', version: 1, name: 'Damaged library' }));
+  await fs.writeFile(path.join(bad, 'library.sqlite'), 'Damaged SQLite fixture');
+  const openError = await error(() => lib.open(bad));
+  const stateError = await error(() => lib.state());
+  const recoverError = await error(() => lib.open(good));
+  const closeError = await error(() => lib.close());
+  if (lib.db) { try { lib.db.close(); } catch {} }
+  const independent = new Library(bin); await independent.open(good);
+  const preserved = independent.state().assets.length; independent.close();
+  results.probes.damagedOpen = { before, openError, stateError, recoverError, closeError, workerRootAfterFailure: lib.root, originalLibraryStillReadable: preserved };
+}
+
+// A disposable render cache is corrupted after a successful render, leaving the sidecar intact.
+{
+  const lib = new Library(bin); await lib.open(path.join(root, 'cache-library'), true);
+  await lib.import([source], undefined, new Job(), () => {});
+  const asset = lib.state().assets[0]; const recipe = { ...defaultImage, size: 512 };
+  lib.saveRecipe(asset.id, recipe);
+  const first = await lib.render(asset.id, recipe, new Job());
+  const full = await lib.resolve(first.path), originalHash = await hashFile(await lib.resolve(asset.original));
+  await fs.writeFile(full, 'truncated cache fixture');
+  const returned = await lib.render(asset.id, recipe, new Job());
+  const destination = path.join(root, 'corrupt-cache-pack.zip');
+  const exported = await lib.export({ ids: [asset.id], author: '', attribution: '' }, destination, new Job(), () => {});
+  const extracted = path.join(root, 'corrupt-cache-extracted');
+  const expanded = spawnSync('powershell.exe', ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${destination.replaceAll("'", "''")}' -DestinationPath '${extracted.replaceAll("'", "''")}'`], { windowsHide: true });
+  assert.equal(expanded.status, 0, expanded.stderr.toString());
+  const manifest = JSON.parse(await fs.readFile(path.join(extracted, 'manifest.json'), 'utf8'));
+  const payload = path.join(extracted, manifest.assets[0].path);
+  const decodeError = await error(() => sharp(payload).metadata());
+  results.probes.corruptCache = { returnedInfo: returned.info, exported, manifestAsset: manifest.assets[0], exportedBytes: (await fs.stat(payload)).size, decodeError, originalUnchanged: originalHash === await hashFile(await lib.resolve(asset.original)) };
+  lib.close();
+}
+
+// The displayed waveform must represent channel amplitude, including opposite-phase stereo.
+{
+  const rate = 48000, frames = rate, wav = Buffer.alloc(44 + frames * 4);
+  wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(2, 22); wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 4, 28); wav.writeUInt16LE(4, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(frames * 4, 40);
+  for (let i = 0; i < frames; i++) { const v = Math.round(Math.sin(2 * Math.PI * 440 * i / rate) * 20000); wav.writeInt16LE(v, 44 + i * 4); wav.writeInt16LE(-v, 46 + i * 4); }
+  const stereo = path.join(root, 'opposite-phase.wav'); await fs.writeFile(stereo, wav);
+  const media = new Media(bin), waveform = await media.waveform(stereo, new Job()), output = path.join(root, 'opposite-phase-output.wav');
+  const rendered = await media.audio(stereo, output, defaultAudio(1), new Job());
+  results.probes.stereoWaveform = { sourceChannelPeak: 20000 / 32768, waveformPeak: Math.max(...waveform), rendered };
+}
+
+// Windows path names generated by the sanitizer, probed only inside this disposable directory.
+{
+  const directory = path.join(root, 'names'); await fs.mkdir(directory);
+  const names = ['CON', 'CON .recording', 'NUL .photo', 'COM1 .take', 'normal', 'CONIN$', 'CONOUT$'];
+  results.probes.filenames = [];
+  for (const name of names) {
+    const safe = safeName(name), filename = `${safe}.png`, full = path.join(directory, filename);
+    const writeError = await error(() => fs.writeFile(full, 'test', { flag: 'wx' }));
+    const actual = (await fs.readdir(directory)).includes(filename);
+    results.probes.filenames.push({ name, filename, writeError, realDirectoryEntryCreated: actual });
+  }
+}
+
+results.finished = new Date().toISOString();
+await fs.writeFile(path.join(root, 'results.json'), JSON.stringify(results, null, 2));
+console.log(JSON.stringify(results, null, 2));
